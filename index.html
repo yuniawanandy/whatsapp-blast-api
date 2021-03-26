@@ -10,12 +10,13 @@
             .pdfobject-container { height: 500px;}
             .pdfobject { border: 1px solid #666; }
           </style>
-        <title>Whatsapp API by Andy Yuniawan</title>
+        <title>Whatsapp Blast</title>
     </head>
     <body>
         <div id="app" class="container">
-            <h3 style="text-align: center;">Whatsapp API</h3>
-            <p style="text-align: center;">Powered by Andy (yuniawandy@gmail.com)</p>
+            <h3 style="text-align: center; display: block; margin-left: auto; margin-right: auto;">Whatsapp Blast by</h3>
+            <!-- <p style="text-align: center;">Powered by Andy (yuniawandy@gmail.com)</p> -->           
+            <img src="https://i.ibb.co/X81yXrV/byf-logo.jpg" alt="byf_logo" id="byf_logo" style="height: 100px; display: block; margin-left: auto; margin-right: auto;">
             <img src="" alt="QR Code" id="qrcode" style="align-self: center;">
             <h4>Logs:</h4>
             <ul class="logs"></ul>
@@ -131,15 +132,18 @@
                     if(myTableArray.length != 0){
                         var myTable = document.getElementById('contacts');
                         for(var i=1; i<myTableArray.length; i++){
-                            myTable.rows[i].cells[5].innerHTML = 'Not processed yet';
-                            myTable.rows[i].cells[5].style.color = "#000000";
+                            var length = myTableArray[i].length
+                            myTable.rows[i].cells[length-1].innerHTML = 'Not processed yet';
+                            myTable.rows[i].cells[length-1].style.color = "#000000";
                         }
                         for ( var i=1; i<myTableArray.length; i++){
                             var form = new FormData();
                             form.append("number", myTableArray[i][1]);
                             form.append("caption", $("#caption").val());
-                            form.append("file", fileInput.files[0]);
 
+                            if(i == 1){
+                                form.append("file", fileInput.files[0]);
+                            }
                             var settings = {
                                 "url": "http://localhost:8000/send-media",
                                 "method": "POST",
@@ -179,22 +183,28 @@
                     var data = results.data;
                     
                     for(i=0;i<data.length;i++){
-                        table+= "<tr>";
                         var row = data[i];
+                        //alert(row);
                         var cells = row.join(",").split(",");
-                        
-                        for(j=0;j<cells.length;j++){
-                            table+= "<td>";
-                            table+= cells[j];
-                            table+= "</th>";
+                        if(cells.length == 1){
+                            var cells = row.join(",").split(";");
                         }
-                        table+= "<td>";
-                        if(i == 0)
-                            table+= "Status";
-                        else
-                            table+= "Not processed yet"
-                        table+= "</th>";
-                        table+= "</tr>";
+
+                        if (cells.length == 5){
+                            table+= "<tr>";
+                            for(j=0;j<cells.length;j++){
+                                table+= "<td>";
+                                table+= cells[j];
+                                table+= "</th>";
+                            }
+                            table+= "<td>";
+                            if(i == 0)
+                                table+= "Status";
+                            else
+                                table+= "Not processed yet"
+                            table+= "</th>";
+                            table+= "</tr>";
+                        }
                     }
                     table += "</table>";
                     $("#parsed_csv_list").html(table);
@@ -255,11 +265,11 @@
                 if(myTableArray.length != 0){
                     var myTable = document.getElementById('contacts');
                     for(var i=1; i<myTableArray.length; i++){
-                            myTable.rows[i].cells[5].innerHTML = 'Not processed yet';
-                            myTable.rows[i].cells[5].style.color = "#000000";
+                            var length = myTableArray[i].length
+                            myTable.rows[i].cells[length-1].innerHTML = 'Not processed yet';
+                            myTable.rows[i].cells[length-1].style.color = "#000000";
                     }
                     for ( var i=1; i<myTableArray.length; i++){
-                        $ij += 1;
                         message = $("#message_text_area").val();
                         message = messageFormatter(message, "[[fullname]]", myTableArray[i][0]);
                         message = messageFormatter(message, "[[var1]]", myTableArray[i][2]);
