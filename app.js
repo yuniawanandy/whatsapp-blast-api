@@ -29,6 +29,8 @@ if (fs.existsSync(SESSION_FILE_PATH)) {
 
 app.get('/', (req, res) => {
     res.sendFile('index.html', {root: __dirname});
+    //res.sendFile('favicon.ico', {root: __dirname});
+    //res.sendFile('byf_logo.jpg', {root: __dirname});
 });
 
 const client = new Client({
@@ -147,12 +149,18 @@ app.post('/send-message', [
     });
 });
 
+var file;
+
 app.post('/send-media', (req, res) =>{
     const number = phoneNumberFormatter(req.body.number);
     const caption = req.body.caption;
     //const media = MessageMedia.fromFilePath('./tes.jpg');
-
-    const file = req.files.file;
+    try{
+        file = req.files.file;
+    }
+    catch (err){
+        //console.log(err);
+    }
     const media = new MessageMedia(file.mimetype, file.data.toString('base64'), file.name);
 
     client.sendMessage(number, media, {caption: caption}).then(response => {
