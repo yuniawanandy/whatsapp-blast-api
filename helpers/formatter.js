@@ -7,6 +7,9 @@ const phoneNumberFormatter = function(number) {
     if (formatted.startsWith('0')){
         formatted = '62' + formatted.substr(1);
     }
+    if (formatted.startsWith('8')){
+        formatted = '62' + formatted;
+    }
 
     if (formatted.startsWith('+')){
         formatted = formatted.substr(1);
