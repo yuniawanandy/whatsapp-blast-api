@@ -11,15 +11,15 @@ Project is created with:
 * whatsapp-web.js version: 1.12.5
 	
 ## Setup
-To run this project, install it locally using npm:
-1. install node.js
-2. install npm package
+To run this project, follow this steps:
+1. Install node.js
+2. Install npm package
 ```
 $ cd ../whatsapp-api-master
 $ npm install
 ```
-3. add chrome.exe to enviroment variable "CHROME"
-4. start the program
+3. Add chrome.exe to enviroment variable "CHROME"
+4. Start the program
 ```
 $ cd ../whatsapp-api-master
 $ npm run start
