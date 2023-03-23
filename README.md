@@ -13,14 +13,19 @@ Project is created with:
 ## Setup
 To run this project, follow this steps:
 1. Install node.js
-2. Install npm package
+2. Extract WhatsApp Blast API to C:\Users\[Username]\whatsapp-blast-api-master
+3. Open Command Prompt
+4. Change the current working directory to WhatsApp Blast API
 ```
-$ cd ../whatsapp-api-master
+$ cd ../whatsapp-blast-api-master
+```
+5. Install npm package
+```
 $ npm install
 ```
 3. Add chrome.exe to enviroment variable "CHROME"
 4. Start the program
 ```
-$ cd ../whatsapp-api-master
+$ cd ../whatsapp-blast-api-master
 $ npm run start
 ```
