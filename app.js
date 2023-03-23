@@ -1,4 +1,4 @@
-const { Client, MessageMedia} = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const { body, validationResult } = require('express-validator')
 const socketIO = require('socket.io');
@@ -21,11 +21,6 @@ app.use(fileUpload({
     debug: true
 }));
 
-const SESSION_FILE_PATH = './whatsapp-session.json';
-let sessionCfg;
-if (fs.existsSync(SESSION_FILE_PATH)) {
-    sessionCfg = require(SESSION_FILE_PATH);
-}
 
 app.get('/', (req, res) => {
     res.sendFile('index.html', {root: __dirname});
@@ -49,7 +44,7 @@ const client = new Client({
             '--disable-gpu'
           ],
         },
-        session: sessionCfg
+    authStrategy: new LocalAuth()
     });
 
 client.on('message', msg => {
@@ -61,7 +56,9 @@ client.on('message', msg => {
 client.initialize();
 
 io.on('connection', function(socket){
-    socket.emit('message', 'Connecting...')
+    socket.on('init', () => {
+        socket.emit('message', 'Connecting...')
+    });
 
     client.on('qr', (qr) => {
         // Generate and scan this code with your phone
@@ -72,11 +69,6 @@ io.on('connection', function(socket){
         });
     });
 
-    if (fs.existsSync(SESSION_FILE_PATH)) {
-        socket.emit('ready', 'Whatsapp is already authecticated! Wait around 10s to make sure! If the QRCode not showing Whatsapp is ready!');
-        socket.emit('message', 'Whatsapp is already authecticated! Wait around 10s to make sure! If the QRCode not showing Whatsapp is ready!');
-    }
-
     client.on('ready', () => {
         socket.emit('ready', 'Whatsapp is ready!');
         socket.emit('message', 'Whatsapp is ready!');
@@ -85,21 +77,11 @@ io.on('connection', function(socket){
     client.on('authenticated', (session) => {
         socket.emit('authenticated', 'Whatsapp is authenticated!');
         socket.emit('message', 'Whatsapp is authenticated!');
-        console.log('AUTHENTICATED', session);
-        sessionCfg=session;
-        fs.writeFile(SESSION_FILE_PATH, JSON.stringify(session), function (err) {
-            if (err) {
-                console.error(err);
-            }
-        });
+        console.log('Whatsapp is authenticated!');
     });
 
     client.on('disconnected', (reason) => {
         socket.emit('message', 'Whatsapp is disconnected!');
-        fs.unlinkSync(SESSION_FILE_PATH, function(err) {
-            if(err) return console.log(err);
-            console.log('Session file deleted!');
-        });
         client.destroy();
         client.initialize();
     });
@@ -151,8 +133,7 @@ app.post('/send-message', [
 
 var file;
 
-app.post('/send-media', (req, res) =>{
-    const number = phoneNumberFormatter(req.body.number);
+app.post('/send-media', async (req, res) =>{
     const caption = req.body.caption;
     //const media = MessageMedia.fromFilePath('./tes.jpg');
     try{
@@ -162,19 +143,47 @@ app.post('/send-media', (req, res) =>{
         //console.log(err);
     }
     const media = new MessageMedia(file.mimetype, file.data.toString('base64'), file.name);
+    
+    const numbers = req.body.number;
+    let numbersArray = JSON.parse(numbers);
+    let errorList = [];
 
-    client.sendMessage(number, media, {caption: caption}).then(response => {
+    for(i=0; i<numbersArray.length; i++){
+        let number = phoneNumberFormatter(numbersArray[i]);
+        const isRegistered = await checkRegisteredNumber(number);
+
+        if(!isRegistered){
+            errorList.push('Failed! Number is not registered');
+        }
+        else{
+            let status = await client.sendMessage(number, media, {caption: caption})
+            .then(function() {
+                return 'Success';
+            })
+            .catch(function() {
+                return 'Failed';
+            });
+
+            errorList.push(status);
+        }
+    }
+
+    let errorString = errorList.join(',');
+
+    if(errorList.indexOf('Success') >= 0){
         res.status(200).json({
             status: true,
-            response: response
+            response: errorString
         });
-    }).catch(err =>{
+    }
+    else{
         res.status(500).json({
             status: false,
-            response: err
+            response: errorString
         });
-    });
+    }
 });
+
 
 server.listen(port, function(){
     console.log('App running on *: ' + port);
