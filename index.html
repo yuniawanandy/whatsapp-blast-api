@@ -9,29 +9,33 @@
         <style>
             .pdfobject-container { height: 500px;}
             .pdfobject { border: 1px solid #666; }
+            ul{height:100px; width:100%;}
+            ul{overflow:hidden; overflow-y:scroll; border: 1px solid rgb(153, 146, 153);}
           </style>
         <title>Whatsapp Blast</title>
     </head>
     <body>
         <div id="app" class="container">
-            <h3 style="text-align: center; display: block; margin-left: auto; margin-right: auto;">Whatsapp Blast by</h3>
+            <h3 style="text-align: center; display: block; margin-left: auto; margin-right: auto;"><b>Whatsapp Blast by Better Youth Foundation</b></h3>
             <!-- <p style="text-align: center;">Powered by Andy (yuniawandy@gmail.com)</p> -->           
-            <img src="https://i.ibb.co/X81yXrV/byf-logo.jpg" alt="byf_logo" id="byf_logo" style="height: 100px; display: block; margin-left: auto; margin-right: auto;">
+            <!-- <img src="https://i.ibb.co/X81yXrV/byf-logo.jpg" alt="byf_logo" id="byf_logo" style="height: 100px; display: block; margin-left: auto; margin-right: auto;"> -->
             <img src="" alt="QR Code" id="qrcode" style="align-self: center;">
             <h4>Logs:</h4>
             <ul class="logs"></ul>
         </div>
         <div class="container" style="padding:10px 10px;">
-            <div id="media" class="well">
+            <div id="media" class="well" style="background-color: rgb(15, 15, 15)">
                 <div class="row">
                 <form class="form-inline">
                     <div class="form-group">
-                        <label for="img">Select image:</label>
+                        <label for="img" style="color: white;">Select media:</label>
                         <input type="file" id="img" class="form-control" required />
+                    </div>
+                    <div class="form-group"> 
                         <input type="text" id="caption" class="form-control" placeholder="Caption" onclick="this.select()"/>
                     </div>
-                    <div class="form-group">
-                        <button type="submit" id="send-media-btn" class="btn btn-primary">Send Media</button>
+                    <div class="form-group"> 
+                        <button type="submit" id="send-media-btn" class="btn btn-warning">Send Media</button>
                     </div>
                 </form>
                 </div>
@@ -49,18 +53,18 @@
                         <li><a onclick="addVariable('[[var3]]')">Var3</a></li>
                     </ul>
                 </div>
-                <button onclick="sendMessage()" class="btn btn-primary" style="float: right;">Send Message</button>
+                <button onclick="sendMessage()" class="btn btn-warning" style="float: right;">Send Message</button>
             </div>
             <br/>
-            <div class="well">
+            <div class="well" style="background-color: rgb(16, 16, 16)">
                 <div class="row">
                 <form class="form-inline">
                     <div class="form-group">
-                      <label for="files">Upload contacs (.csv):</label>
-                      <input type="file" id="files"  class="form-control" accept=".csv" required />
+                        <label for="files" style="color: white;">Upload contacs (.csv):</label>
+                        <input type="file" id="files"  class="form-control" accept=".csv" required />
                     </div>
-                    <div class="form-group">
-                        <button type="submit" id="submit-file" class="btn btn-primary">Upload File</button>
+                    <div class="form-group"> 
+                        <button type="submit" id="submit-file" class="btn btn-warning">Upload File</button>
                     </div>
                 </form>
                 <br/>
@@ -73,6 +77,8 @@
         <script>
             $(document).ready(function(){
                 var socket = io.connect('http://localhost:8000', { path: '/socket.io'});
+                $('#qrcode').hide();
+                socket.emit('init', 'Client initialization');
 
                 socket.on('message', function(msg){
                     $('.logs').empty();
@@ -94,7 +100,8 @@
                     e.preventDefault();
                     $('#files').parse({
                         config: {
-                            delimiter: "auto",
+                            delimiter: "",
+                            newline: "",
                             complete: displayHTMLTable,
                         },
                         before: function(file, inputElem)
@@ -118,7 +125,10 @@
                 });
 
                 async function sendMedia(fileInput){
+                    $('.logs').empty();
+                    $('.logs').append($('<li>').text("Sending media messages..."));
                     $("body").css("cursor", "progress");
+
                     var myTableArray = [];
                     $("table#contacts tr").each(function() {
                         var arrayOfThisRow = [];
@@ -128,47 +138,51 @@
                             myTableArray.push(arrayOfThisRow);
                         }
                     });
-
-                    if(myTableArray.length != 0){
-                        var myTable = document.getElementById('contacts');
-                        for(var i=1; i<myTableArray.length; i++){
+                    
+                    var myTable = document.getElementById('contacts');
+                    for(var i=1; i<myTableArray.length; i++){
                             var length = myTableArray[i].length
                             myTable.rows[i].cells[length-1].innerHTML = 'Not processed yet';
                             myTable.rows[i].cells[length-1].style.color = "#000000";
                         }
-                        for ( var i=1; i<myTableArray.length; i++){
-                            var form = new FormData();
-                            form.append("number", myTableArray[i][1]);
-                            form.append("caption", $("#caption").val());
 
-                            if(i == 1){
-                                form.append("file", fileInput.files[0]);
-                            }
-                            var settings = {
-                                "url": "http://localhost:8000/send-media",
-                                "method": "POST",
-                                "timeout": 0,
-                                "processData": false,
-                                "mimeType": "multipart/form-data",
-                                "contentType": false,
-                                "data": form
-                            };
+                    var numbers = getColumnData(myTableArray, 1);
+                    numbers.splice(0,1);
 
-                            let data = await $.ajax(settings).done(function (response) {
-                                console.log(response);
-                                return response;
-                            });
+                    if(numbers != 0){
+                        var form = new FormData();
+                        form.append("number", JSON.stringify(numbers));
+                        form.append("caption", $("#caption").val());
+                        form.append("file", fileInput.files[0]);
 
-                            var tes = JSON.parse(data);
+                        var settings = {
+                            "url": "http://localhost:8000/send-media",
+                            "method": "POST",
+                            "timeout": 0,
+                            "processData": false,
+                            "mimeType": "multipart/form-data",
+                            "contentType": false,
+                            "data": form
+                        };
 
-                            if(tes.status == true){
-                                myTable.rows[i].cells[5].innerHTML = 'Success';
-                                myTable.rows[i].cells[5].style.color = "#00AA00";
+                        let data = await $.ajax(settings).done(response => {
+                            console.log(response);
+                            return response;
+                        }).fail (response => {
+                            console.log(response);
+                            return response;
+                        });
+
+                        var tes = JSON.parse(data);
+                        
+                        for(i=1; i<=numbers.length; i++){
+                            let status = tes.response.split(',')[i-1];
+                            myTable.rows[i].cells[5].innerHTML = status;
+                            if(status == 'Success'){
+                                myTable.rows[i].cells[5].style.backgroundColor = "rgb(17, 211, 82)";
                             }
                             else{
-                                myTable.rows[i].cells[5].innerHTML = 'Failed';
-                                myTable.rows[i].cells[5].style.color = "#FF0000";
-                                
+                                myTable.rows[i].cells[5].style.backgroundColor = "rgb(253, 85, 85)";
                             }
                         }
                     }
@@ -176,11 +190,15 @@
                         alert("ERROR!!! Please input contacts");
                     }
                     $("body").css("cursor", "default");
+                    $('.logs').append($('<li>').text("Sending media messages done!"));
                 }
         
                 function displayHTMLTable(results){
-                    var table = '<table id="contacts" class="table table-bordered table-striped">';
+                    var table = '<table id="contacts" class="table table-hover" style="background-color: white">';
                     var data = results.data;
+
+                    $('.logs').empty();
+                    $('.logs').append($('<li>').text("Uploading contact..."));
                     
                     for(i=0;i<data.length;i++){
                         var row = data[i];
@@ -191,7 +209,9 @@
                         }
 
                         if (cells.length == 5){
-                            table+= "<tr>";
+                            if (i==0)   table+= "<tr style='font-weight: bold; background-color: whitesmoke'>";
+                            else    table+= "<tr>";
+
                             for(j=0;j<cells.length;j++){
                                 table+= "<td>";
                                 table+= cells[j];
@@ -205,9 +225,14 @@
                             table+= "</th>";
                             table+= "</tr>";
                         }
+                        else {
+                            let text = "Number of column in row " + i + " is invalid!\nPlease don't use comma (,) or semicolon(;)!";
+                            $('.logs').append($('<li>').text(text).css('color', 'red'));
+                        }
                     }
                     table += "</table>";
                     $("#parsed_csv_list").html(table);
+                    $('.logs').append($('<li>').text("Uploading contact done!"));
                 }
             });
 
@@ -217,12 +242,21 @@
                 return formatted;
             }
 
+            const getColumnData = function(matrix, col){
+                var column = [];
+                for(var i=0; i<matrix.length; i++){
+                    column.push(matrix[i][col]);
+                }
+                return column; // return column data..
+            }
+
             function addVariable(text_input){
                 var curPos = document.getElementById("message_text_area").selectionStart;
                 let x= $('#message_text_area').val();
                 $('#message_text_area').val(x.slice(0,curPos)+text_input+x.slice(curPos));
                 $('#message_text_area').focus();
                 document.getElementById("message_text_area").selectionStart = curPos + text_input.length;
+                document.getElementById("message_text_area").selectionEnd = curPos + text_input.length;
             }
 
             function insertAtCursor(myField, myValue) {
@@ -243,9 +277,11 @@
                     myField.value += myValue;
                 }
             }
-
-            async function sendMessage(){
+            
+			async function sendMessage(){
                 $("body").css("cursor", "progress");
+                $('.logs').empty();
+                $('.logs').append($('<li>').text("Sending messages..."));
                 var myHeaders = new Headers();
                 myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
 
@@ -301,11 +337,11 @@
 
                         if(tes.status == true){
                             myTable.rows[i].cells[5].innerHTML = 'Success';
-                            myTable.rows[i].cells[5].style.color = "#00AA00";
+                            myTable.rows[i].cells[5].style.backgroundColor = "rgb(17, 211, 82)";
                         }
                         else{
                             myTable.rows[i].cells[5].innerHTML = 'Failed';
-                            myTable.rows[i].cells[5].style.color = "#FF0000";
+                            myTable.rows[i].cells[5].style.backgroundColor = "rgb(253, 85, 85)";
                             
                         }
                     }
@@ -320,6 +356,7 @@
                     alert("ERROR!!! Please input contacts");
                 }
                 $("body").css("cursor", "default");
+                $('.logs').append($('<li>').text("Sending messages done!"));
             }
 
             function readURL(input) {
